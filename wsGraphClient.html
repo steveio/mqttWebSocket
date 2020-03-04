@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Realtime Data Line Graph</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta charset='utf-8' />
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <style>
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    #chart {
+      max-width: 600px;
+      max-height: 400px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <script src="wsGraphClient.js"></script>
+    <script>
+    var lineArr = [];
+    var MAX_LENGTH = 100;
+    var duration = 500;
+    var chart = realTimeLineChart();
+    // setup WebSocket
+    var ws = new WebSocket('ws://127.0.0.1:8080', []);
+
+    function setupWebSocket()
+    {
+      ws.onopen = function () {};
+
+      ws.onerror = function (error) {
+        console.log('WebSocket Error ' + error);
+      };
+
+      ws.onmessage = function (e) {
+        var jsonObj = JSON.parse(e.data);
+        jsonObj.ts = new Date(jsonObj.ts * 1000);
+        lineArr.push(jsonObj);
+      };
+
+    }
+
+    function updateData() {
+
+      if (lineArr.length > 30) {
+        lineArr.shift();
+      }
+      if (lineArr.length > 10) {
+        d3.select("#chart").datum(lineArr).call(chart);
+      }
+    }
+
+    function resize() {
+      if (d3.select("#chart svg").empty()) {
+        return;
+      }
+      chart.width(+d3.select("#chart").style("width").replace(/(px)/g, ""));
+      d3.select("#chart").call(chart);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      setupWebSocket();
+      window.setInterval(updateData, 500); // polling interval for chart refresh
+      d3.select("#chart").datum(lineArr).call(chart);
+      d3.select(window).on('resize', resize);
+    });
+    </script>
+</body>
+</html>
