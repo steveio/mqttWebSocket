@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Gauge Visualization</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta charset='utf-8' />
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <style>
+    text {
+      font-family: "Verdana", sans-serif;
+    }
+    .chart {
+      float: left;
+      max-width: 500px;
+    }
+    </style>
+  </head>
+  <body>
+
+    <div style="float: left;">
+    <div class="chart" id="chartTempC"></div>
+    <div class="chart" id="chartP"></div>
+    <div class="chart" id="chartH"></div>
+    <div class="chart" id="chartLDR"></div>
+    </div>
+
+    <script src="wsRadialGauge.js"></script>
+    <script>
+
+
+    var gaugeTempC = gaugeChart()
+      .width(460)
+      .height(270)
+      .innerRadius(50)
+      .outerRadius(80)
+      .dataDomain([0,20,40]);
+
+    var gaugeP = gaugeChart()
+      .width(460)
+      .height(270)
+      .innerRadius(50)
+      .outerRadius(80)
+      .ticks(15)
+      .dataDomain([980,1010,1050]);
+
+    var gaugeH = gaugeChart()
+      .width(460)
+      .height(270)
+      .innerRadius(50)
+      .outerRadius(80)
+      .dataDomain([0,50,100]);
+
+    var gaugeLDR = gaugeChart()
+      .width(460)
+      .height(270)
+      .innerRadius(50)
+      .outerRadius(80)
+      .dataDomain([0,500,1000]);
+
+    d3.select("#chartTempC").datum([0]).call(gaugeTempC);
+    d3.select("#chartP").datum([0]).call(gaugeP);
+    d3.select("#chartH").datum([0]).call(gaugeH);
+    d3.select("#chartLDR").datum([0]).call(gaugeLDR);
+
+    function resize() {
+      var gWidth = Math.min(d3.select("#chartTempC").node().offsetWidth, 400);
+      gaugeTempC.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
+      d3.select("#chartTempC").call(gaugeTempC);
+
+      var gWidth = Math.min(d3.select("#chartP").node().offsetWidth, 400);
+      console.log(gWidth);
+      gaugeP.width(gWidth).innerRadius(64).outerRadius((140) + 10);
+      d3.select("#chartP").call(gaugeP);
+
+      var gWidth = Math.min(d3.select("#chartH").node().offsetWidth, 400);
+      gaugeH.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
+      d3.select("#chartH").call(gaugeH);
+
+      var gWidth = Math.min(d3.select("#chartLDR").node().offsetWidth, 400);
+      gaugeLDR.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
+      d3.select("#chartLDR").call(gaugeLDR);
+
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    var dataArr = [];
+    // setup WebSocket
+    var ws = new WebSocket('ws://127.0.0.1:8080',[]);
+
+    function setupWebSocket()
+    {
+      ws.onopen = function () {
+        console.log('WebSocket Open');
+      };
+
+      ws.onerror = function (error) {
+        console.log('WebSocket Error ' + error);
+      };
+
+      ws.onmessage = function (e) {
+        var rawData = e.data;
+        if(rawData.trim().length > 1)
+        {
+          var jsonObj = JSON.parse(rawData);
+          //dataArr.push(jsonObj);
+          processData(jsonObj);
+        }
+      };
+
+    }
+
+    function processData(jsonObj) {
+        console.log(jsonObj[0]['tempC']);
+
+        jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
+        jsonObj[0]['LDR'] = 1000 - jsonObj[0]['LDR'];
+
+        d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
+        d3.select("#chartP").datum([jsonObj[0]['p']]).call(gaugeP);
+        d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
+        d3.select("#chartLDR").datum([jsonObj[0]['LDR']]).call(gaugeLDR);
+
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupWebSocket();
+    });
+
+    function randNumberBounds(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+    </script>
+</body>
+</html>
