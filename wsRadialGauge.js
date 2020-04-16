@@ -1,8 +1,6 @@
 // Based on reusable chart pattern from https://bost.ocks.org/mike/chart/
 function gaugeChart() {
 
-  console.log("gaugeChart()");
-
   var margin = {top: 0, right: 65, bottom: 10, left: 65},
       width = 250,
       height = 150,
@@ -21,8 +19,6 @@ function gaugeChart() {
       arc = d3.arc();
 
   function chart(selection) {
-
-    console.log("chart()");
 
     selection.each(function(data) {
       // Convert data to standard representation greedily;
@@ -139,8 +135,6 @@ function gaugeChart() {
         }).text(function(d) { return d; });
 
       // icons
-      console.log("add icons");
-      console.log(imgUrl);
       if(typeof imgUrl[0] !== 'undefined')
       {
         var icon1 = arcGEnter.append("svg:image")

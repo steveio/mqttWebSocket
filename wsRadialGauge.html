@@ -21,12 +21,17 @@
   </head>
   <body>
 
+    <div>
+      <h4>Last Weather Station Sample: <span id="datetime"></span></h4>
+    </div>
+
     <div style="float: left;">
     <div class="chart" id="chartTempC"></div>
     <div class="chart" id="chartP"></div>
     <div class="chart" id="chartH"></div>
     <div class="chart" id="chartLDR"></div>
     </div>
+
 
     <script src="wsRadialGauge.js"></script>
     <script>
@@ -135,24 +140,29 @@
         jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
         jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
 
-
         d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
         d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
         setLDR(gaugeLDR,jsonObj[0]['LDR']);
-
         // @todo - compute previous (avg) level
         setBarometer(gaugeP,jsonObj[0]['p'],1040);
+
+        setLastSampleDate(jsonObj[0]['ts']);
 
     }
 
     document.addEventListener("DOMContentLoaded", function() {
         setupWebSocket();
-        d3.select("#chartTempC").datum([21]).call(gaugeTempC);
-        d3.select("#chartP").datum([1000,1020]).call(gaugeP);
-        setBarometer(gaugeP,1005,1030);
-        setLDR(gaugeLDR,89);
 
     });
+
+    function setLastSampleDate(ts)
+    {
+      var d = new Date(ts * 1000);
+      var hours = ("0" + d.getHours()).slice(-2);
+      var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
+      console.log(dateStr);
+      document.getElementById("datetime").innerHTML = dateStr;
+    }
 
     function setLDR(gaugeLDR,level)
     {
