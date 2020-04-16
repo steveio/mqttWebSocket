@@ -13,6 +13,10 @@
       float: left;
       max-width: 500px;
     }
+    .filter-green{
+        filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+    }
+
     </style>
   </head>
   <body>
@@ -33,43 +37,57 @@
       .height(270)
       .innerRadius(50)
       .outerRadius(80)
-      .dataDomain([0,20,40]);
+      .dataDomain([0,20,40])
+      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"]);
 
+    /*
+      Barometer Additional Use Cases:
+        - plot symbols / text for stormy|rain|change|fair|dry
+        - marker lines for low / high Pressure
+        - display current + previous (average) pressure
+    */
     var gaugeP = gaugeChart()
       .width(460)
       .height(270)
       .innerRadius(50)
       .outerRadius(80)
       .ticks(15)
-      .dataDomain([980,1010,1050]);
+      .dataDomain([980,1010,1050])
+      .imgUrl([]);
 
     var gaugeH = gaugeChart()
       .width(460)
       .height(270)
       .innerRadius(50)
       .outerRadius(80)
-      .dataDomain([0,50,100]);
+      .dataDomain([0,50,100])
+      .imgUrl(["raindrop.svg"]);
+
 
     var gaugeLDR = gaugeChart()
       .width(460)
       .height(270)
+      .ticks(15)
       .innerRadius(50)
       .outerRadius(80)
-      .dataDomain([0,500,1000]);
+      .dataDomain([0,50,100])
+      .imgUrl([]);
+
 
     d3.select("#chartTempC").datum([0]).call(gaugeTempC);
     d3.select("#chartP").datum([0]).call(gaugeP);
     d3.select("#chartH").datum([0]).call(gaugeH);
     d3.select("#chartLDR").datum([0]).call(gaugeLDR);
 
+
+    //setLDRIcon(gaugeLDR,55);
     function resize() {
       var gWidth = Math.min(d3.select("#chartTempC").node().offsetWidth, 400);
       gaugeTempC.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
       d3.select("#chartTempC").call(gaugeTempC);
 
       var gWidth = Math.min(d3.select("#chartP").node().offsetWidth, 400);
-      console.log(gWidth);
-      gaugeP.width(gWidth).innerRadius(64).outerRadius((140) + 10);
+      gaugeP.width(gWidth).innerRadius(124).outerRadius((150));
       d3.select("#chartP").call(gaugeP);
 
       var gWidth = Math.min(d3.select("#chartH").node().offsetWidth, 400);
@@ -77,9 +95,8 @@
       d3.select("#chartH").call(gaugeH);
 
       var gWidth = Math.min(d3.select("#chartLDR").node().offsetWidth, 400);
-      gaugeLDR.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
+      gaugeLDR.width(gWidth).innerRadius(164).outerRadius((1140) + 40);
       d3.select("#chartLDR").call(gaugeLDR);
-
     }
 
     resize();
@@ -115,18 +132,101 @@
         console.log(jsonObj[0]['tempC']);
 
         jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
-        jsonObj[0]['LDR'] = 1000 - jsonObj[0]['LDR'];
+        jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
+        jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+
 
         d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
-        d3.select("#chartP").datum([jsonObj[0]['p']]).call(gaugeP);
         d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
-        d3.select("#chartLDR").datum([jsonObj[0]['LDR']]).call(gaugeLDR);
+        setLDR(gaugeLDR,jsonObj[0]['LDR']);
+
+        // @todo - compute previous (avg) level
+        setBarometer(gaugeP,jsonObj[0]['p'],1040);
 
     }
 
     document.addEventListener("DOMContentLoaded", function() {
         setupWebSocket();
+        d3.select("#chartTempC").datum([21]).call(gaugeTempC);
+        d3.select("#chartP").datum([1000,1020]).call(gaugeP);
+        setBarometer(gaugeP,1005,1030);
+        setLDR(gaugeLDR,89);
+
     });
+
+    function setLDR(gaugeLDR,level)
+    {
+      if (level > 85)
+      {
+        gaugeLDR = gaugeLDR.imgUrl(["sun.svg"]);
+      } else if (level > 50) {
+        gaugeLDR = gaugeLDR.imgUrl(["cloud-sun.svg"]);
+      } else {
+        gaugeLDR = gaugeLDR.imgUrl(["moon-stars.svg"]);
+      }
+
+      d3.select("#chartLDR").selectAll("svg").remove();
+      d3.select("#chartLDR").datum([level]).call(gaugeLDR);
+
+    }
+
+    function setBarometer(gaugeP,level, prevLevel)
+    {
+      var highPressure = 1022;
+      var lowPressure = 1009;
+      var margin = 20;
+      var diff = level - prevLevel;
+      if (Math.sign(diff) == -1)
+      {
+        Math.abs(diff);
+      }
+
+      if (level >= highPressure)
+      {
+        if (level <= prevLevel)
+        {
+          if (diff <= margin) // slowly falling: continued fair
+          {
+            gaugeP = gaugeP.imgUrl(["sun.svg"]);
+          } else { // falling rapidly: cloudy/warmer
+            gaugeP = gaugeP.imgUrl(["cloud-sun.svg"]);
+          }
+        } else { // rising or steady pressure: continued fair
+            gaugeP = gaugeP.imgUrl(["sun.svg"]);
+        }
+      } else if (level <= lowPressure) {
+
+        if (level <= prevLevel)
+        {
+          if (diff <= margin) // slowly falling: rain
+          {
+            gaugeP = gaugeP.imgUrl(["umbrella-drizzle.svg"]);
+          } else { // falling rapidly: stormy
+            gaugeP = gaugeP.imgUrl(["cloud-drizzle-lightning.svg"]);
+          }
+        } else { // rising or steady pressure: clearing and/or cooler
+            gaugeP = gaugeP.imgUrl(["cloud-sun-2.svg"]);
+        }
+
+      } else { // normal pressure
+        if (level <= prevLevel)
+        {
+          if (diff <= margin) // slowly falling: continued fair
+          {
+            gaugeP = gaugeP.imgUrl(["cloud-sun.svg"]);
+          } else { // falling rapidly: rain or snow if cold enough
+            gaugeP = gaugeP.imgUrl(["cloud-rain-2.svg"]);
+          }
+        } else { // rising or steady pressure: present continues
+            gaugeP = gaugeP.imgUrl(["cloud-sun.svg"]);
+        }
+      }
+
+      d3.select("#chartP").selectAll("svg").remove();
+      d3.select("#chartP").datum([level,prevLevel]).call(gaugeP);
+
+    }
+
 
     function randNumberBounds(min, max) {
       min = Math.ceil(min);
