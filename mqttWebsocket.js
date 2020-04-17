@@ -49,32 +49,48 @@ mqttClient.on('connect', function() {
     mqttClient.subscribe(mqtt_channel_out, function() {});
 });
 
+function noop() {}
+
+function heartbeat() {
+  this.isAlive = true;
+}
 
 // Create a client connection
 wss.on('connection', function connection(ws,req) {
   console.log('WS connection()');
-  //console.log(ws);
-  //console.log(req);
 
-  mqttClient.on('message', function sendMsg(topic, message, packet) {
+  ws.isAlive = true;
+  ws.on('pong', heartbeat);
+});
 
-    console.log(topic + ": " + message);
+mqttClient.on('message', function sendMsg(topic, message, packet) {
 
-    // bug - on each browser refresh as new listener is registered
-    var eventListeners = require('events').EventEmitter.listenerCount(mqttClient,'message');
-    console.log(eventListeners + " Listner(s) listening to mqttClient message event");
-    //console.log(mqttClient.rawListeners('message'));
+  console.log(topic + ": " + message);
 
+  var eventListeners = require('events').EventEmitter.listenerCount(mqttClient,'message');
+  console.log(eventListeners + " Listner(s) listening to mqttClient message event");
+  console.log(mqttClient.rawListeners('message'));
+
+  wss.clients.forEach(function each(ws) {
+    if (ws.isAlive === false) return ws.terminate();
     ws.send(message+" ");
   });
+
 });
 
-wss.on('close', function connection() {
-  console.log('WS close()');
-});
 
-wss.on('close', function connection() {
+const interval = setInterval(function ping() {
+  wss.clients.forEach(function each(ws) {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping(noop);
+  });
+}, 30000);
+
+wss.on('close', function close() {
   console.log('WS close()');
+  clearInterval(interval);
 });
 
 wss.on('listening', function connection() {
