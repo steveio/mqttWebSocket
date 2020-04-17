@@ -15,7 +15,7 @@ function gaugeChart() {
       dataValue = function(d) { return +d; },
       colorScale = d3.scaleLinear(),
       arcScale = d3.scaleLinear(),
-      colorOptions = ["#d7191c", "#efef5d", "#1a9641"],
+      colorOptions = ["#d7191c", "#efef5d", "#1a9641"], // red - yellow - green
       arc = d3.arc();
 
   function chart(selection) {

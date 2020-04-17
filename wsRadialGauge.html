@@ -43,7 +43,8 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,20,40])
-      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"]);
+      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"])
+      .colorOptions ( ['#d73027', '#fee08b', '#1a9850'] );
 
     /*
       Barometer Additional Use Cases:
@@ -58,7 +59,8 @@
       .outerRadius(80)
       .ticks(15)
       .dataDomain([980,1010,1050])
-      .imgUrl([]);
+      .imgUrl([])
+      .colorOptions ( ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850'] ); // blue light -> dark
 
     var gaugeH = gaugeChart()
       .width(460)
@@ -66,8 +68,8 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,50,100])
-      .imgUrl(["raindrop.svg"]);
-
+      .imgUrl(["raindrop.svg"])
+      .colorOptions ( ["1FC4EC", "#1FA1EC", "#1F73EC"] ); // blue light -> dark
 
     var gaugeLDR = gaugeChart()
       .width(460)
@@ -76,7 +78,9 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,50,100])
-      .imgUrl([]);
+      .imgUrl([])
+      .colorOptions ( ["#1A4196", "#EC761F", "#FFE600"] ); // deep blue - orange - yellow
+
 
 
     d3.select("#chartTempC").datum([0]).call(gaugeTempC);
@@ -134,7 +138,6 @@
     }
 
     function processData(jsonObj) {
-        console.log(jsonObj[0]['tempC']);
 
         jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
         jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
@@ -160,7 +163,6 @@
       var d = new Date(ts * 1000);
       var hours = ("0" + d.getHours()).slice(-2);
       var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
-      console.log(dateStr);
       document.getElementById("datetime").innerHTML = dateStr;
     }
 
