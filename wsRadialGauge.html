@@ -5,6 +5,9 @@
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta charset='utf-8' />
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <style>
     text {
       font-family: "Verdana", sans-serif;
@@ -43,8 +46,8 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,20,40])
-      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"])
-      .colorOptions ( ['#d73027', '#fee08b', '#1a9850'] );
+      .colorInterpolator(d3.interpolateRdYlBu)
+      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"]);
 
     /*
       Barometer Additional Use Cases:
@@ -59,8 +62,8 @@
       .outerRadius(80)
       .ticks(15)
       .dataDomain([980,1010,1050])
-      .imgUrl([])
-      .colorOptions ( ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850'] ); // blue light -> dark
+      .colorInterpolator(d3.interpolateRdYlGn)
+      .imgUrl([]);
 
     var gaugeH = gaugeChart()
       .width(460)
@@ -68,8 +71,8 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,50,100])
-      .imgUrl(["raindrop.svg"])
-      .colorOptions ( ["1FC4EC", "#1FA1EC", "#1F73EC"] ); // blue light -> dark
+      .colorInterpolator(d3.interpolateBlues)
+      .imgUrl(["raindrop.svg"]);
 
     var gaugeLDR = gaugeChart()
       .width(460)
@@ -78,8 +81,8 @@
       .innerRadius(50)
       .outerRadius(80)
       .dataDomain([0,50,100])
-      .imgUrl([])
-      .colorOptions ( ["#1A4196", "#EC761F", "#FFE600"] ); // deep blue - orange - yellow
+      .colorInterpolator(d3.interpolatePlasma)
+      .imgUrl([]);
 
 
 
@@ -155,6 +158,11 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         setupWebSocket();
+
+        d3.select("#chartTempC").datum([12]).call(gaugeTempC);
+        d3.select("#chartH").datum([50]).call(gaugeH);
+        setBarometer(gaugeP,1049,1040);
+        setLDR(gaugeLDR,90);
 
     });
 

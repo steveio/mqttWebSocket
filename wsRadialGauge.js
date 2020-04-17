@@ -14,6 +14,7 @@ function gaugeChart() {
       ticks = 5,
       dataValue = function(d) { return +d; },
       colorScale = d3.scaleLinear(),
+      colorInterpolator = d3.interpolateTurbo,
       arcScale = d3.scaleLinear(),
       colorOptions = ["#d7191c", "#efef5d", "#1a9641"], // red - yellow - green
       arc = d3.arc();
@@ -25,7 +26,9 @@ function gaugeChart() {
       // this is needed for nondeterministic accessors.
       data = data.map(function(d, i) { return dataValue(d); });
       arcScale = d3.scaleLinear().domain(dataDomain).range([arcMin, 0, arcMax]);
-      colorScale = d3.scaleLinear().domain(dataDomain).range(colorOptions);
+      //colorScale = d3.scaleLinear().domain(dataDomain).range(colorOptions);
+      colorScale = d3.scaleSequential(colorInterpolator).domain([dataDomain[0],dataDomain[2]]);
+
       arc = d3.arc().innerRadius(innerRadius)
         .outerRadius(outerRadius)
         .startAngle(arcMin);
@@ -213,6 +216,12 @@ function gaugeChart() {
   chart.colorOptions = function(_) {
     if (!arguments.length) return colorOptions;
     colorOptions = _;
+    return chart;
+  };
+
+  chart.colorInterpolator = function(_) {
+    if (!arguments.length) return colorInterpolator;
+    colorInterpolator = _;
     return chart;
   };
 
