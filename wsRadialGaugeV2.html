@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>D3 Radial - Gauge Demo</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js">
+  </script>
+</head>
+<body>
+<div>
+  <h4>Barometric Air Pressure: <span id="datetime"></span></h4>
+</div>
+
+<div>
+  <div id="singleGauge" style="height:460px;"></div>
+</div>
+</body>
+
+      <script src="wsRadialGaugeV2.js"></script>
+      <script type="text/javascript">
+
+
+        var dataArr = [];
+
+        // setup WebSocket
+        var ws = new WebSocket('ws://127.0.0.1:8080',[]);
+
+        function setupWebSocket()
+        {
+          ws.onopen = function () {
+            console.log('WebSocket Open');
+          };
+
+          ws.onerror = function (error) {
+            console.log('WebSocket Error ' + error);
+          };
+
+          ws.onmessage = function (e) {
+            var rawData = e.data;
+            if(rawData.trim().length > 1)
+            {
+              var jsonObj = JSON.parse(rawData);
+              //dataArr.push(jsonObj);
+              jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
+              jsonObj[0]['pAvg'] = jsonObj[0]['pAvg'] / 100;
+              jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
+              jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+
+              console.log(jsonObj);
+
+              dataArr.push(jsonObj);
+
+              setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a']);
+            }
+          };
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            setupWebSocket();
+        });
+
+        function setLastSampleDate(ts,alt)
+        {
+          var d = new Date(ts * 1000);
+          var hours = ("0" + d.getHours()).slice(-2);
+          var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
+          dateStr += ', Altitude: '+alt.toFixed(2)+' metres';
+          document.getElementById("datetime").innerHTML = dateStr;
+        }
+
+         $(function () {
+           var gaugeData = {
+               "ranges":[
+                   {"id":"00b4c767-bc7b-4bea-9e56-229385ff75f8","min":940,"max":960,"thickness":0.5,"color":"#ff4f4f","value":"Stormy"},
+                   {"id":"62996c84-b822-4d02-aac7-3e7605bb173a","min":960,"max":990,"thickness":0.5,"color":"#ff8080","value":"Rain"},
+                   {"id":"fc1664a4-8861-44d6-ac33-cb88fa54d683","min":990,"max":1020,"thickness":0.5,"color":"#eaf424","value":"Change"},
+                   {"id":"42f4872d-0da8-489d-9236-a63d288026e2","min":1020,"max":1040, "thickness":0.5,"color":"#f5fa3d","value":"Fair"},
+                   {"id":"970bb7e1-1f32-4aed-9e3e-1e4ea662458d","min":1040,"max":1070,"thickness":0.5,"color":"#269d2f","value":"Very Dry"}
+               ],
+               "needles":[
+                   {"id":"100aaf20-274d-4b64-99f4-e93de73f4fc1","value":940,"precision":1,"valueUnit":"hPa","thickness":0.0,"color":"#3182bd","clickFunc":"","clickParams":""},
+                   {"id":"100aaf20-274d-4b64-99f4-e93de73f4fc2","value":940,"precision":1,"valueUnit":"3h","thickness":0.0,"color":"#9ecae1","clickFunc":"","clickParams":""}
+                ],
+               "face":{"thickness":0.0},
+               "format":null,
+               "value":0.0,
+               "valueUnit":"",
+               "lowerLimit":940,
+               "upperLimit":1070,
+               "step":5,
+               "startAngle":0,
+               "sweepAngle":180,
+               "hasShadow":true,
+               "autoScale":true,
+               "showRanges":true,
+               "isAnimated":true,
+               "majorGradPrecision":1,
+               "gaugeTitle":"Single Gauge "
+           };
+           var singleGauge = new CustomGauge($("#singleGauge"),gaugeData);
+           singleGauge.initialise();
+           setInterval(function(){
+
+             if (dataArr.length >= 1)
+             {
+               var jsonObj = dataArr[dataArr.length - 1];
+
+               gaugeData.needles[0].value = jsonObj[0]['p'];
+               gaugeData.needles[1].value = jsonObj[0]['pAvg']; // 3hour simple moving average
+               /*
+               for (i = 0; i < gaugeData.needles.length; i++) {
+                  gaugeData.needles[i].value = jsonObj[0]['p'];
+               }
+               */
+               var newMultiNeedles =gaugeData.needles;
+               singleGauge.onNeedlesChanged(newMultiNeedles);
+             }
+
+           }, 5000)
+         });
+    </script>
+</html>
