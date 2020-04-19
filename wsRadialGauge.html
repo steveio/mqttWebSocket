@@ -39,15 +39,81 @@
     <script src="wsRadialGauge.js"></script>
     <script>
 
+    var dataArr = [];
+    // setup WebSocket
+    var ws = null;
+
+    function setupWebSocket()
+    {
+
+      ws = new WebSocket('ws://127.0.0.1:8080',[]);
+
+      ws.onopen = function () {
+        console.log('WebSocket Open');
+      };
+
+      ws.onerror = function (error) {
+        console.log('WebSocket Error ' + error);
+      };
+
+      ws.onmessage = function (e) {
+        var rawData = e.data;
+        if(rawData.trim().length > 1)
+        {
+          try {
+
+            var jsonObj = JSON.parse(rawData);
+            processData(jsonObj);
+
+          } catch(e) {
+              console.log("Invalid JSON:"+rawData.toString());
+          }
+
+        }
+      };
+    }
+
+    // check connection status every 60sec, upto maxReconnectAttemps, try reconnect
+    const interval = setInterval(function checkConnectStatus() {
+      if (reconnectAttempts++ < maxReconnectAttemps)
+      {
+        if (ws.readyState !== ws.OPEN) {
+           console.log("WS connection closed - try re-connect");
+           setupWebSocket();
+        }
+      }
+    }, 60000);
+
+    function processData(jsonObj) {
+
+        jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
+        jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
+        jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+        // average current DH11 & BMP180 temp reads
+        jsonObj[0]['tempC'] = (jsonObj[0]['tempC'] + jsonObj[0]['tc2']) / 2;
+
+        d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
+        d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
+        setLDR(gaugeLDR,jsonObj[0]['LDR']);
+        setBarometer(gaugeP,jsonObj[0]['p'],jsonObj[0]['pAvg']);
+
+        setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a']);
+
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupWebSocket();
+    });
 
     var gaugeTempC = gaugeChart()
       .width(460)
       .height(270)
       .innerRadius(50)
       .outerRadius(80)
+      .units("°C")
       .dataDomain([0,20,40])
       .colorInterpolator(d3.interpolateRdYlBu)
-      .imgUrl(["thermometer-25.svg","degrees-celcius.svg"]);
+      .imgUrl(["thermometer-25.svg"]);
 
     /*
       Barometer Additional Use Cases:
@@ -61,6 +127,7 @@
       .innerRadius(50)
       .outerRadius(80)
       .ticks(15)
+      .units("hPa")
       .dataDomain([980,1010,1050])
       .colorInterpolator(d3.interpolateRdYlGn)
       .imgUrl([]);
@@ -70,6 +137,7 @@
       .height(270)
       .innerRadius(50)
       .outerRadius(80)
+      .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolateBlues)
       .imgUrl(["raindrop.svg"]);
@@ -80,6 +148,7 @@
       .ticks(15)
       .innerRadius(50)
       .outerRadius(80)
+      .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolatePlasma)
       .imgUrl([]);
@@ -114,63 +183,12 @@
     resize();
     window.addEventListener("resize", resize);
 
-    var dataArr = [];
-    // setup WebSocket
-    var ws = new WebSocket('ws://127.0.0.1:8080',[]);
-
-    function setupWebSocket()
-    {
-      ws.onopen = function () {
-        console.log('WebSocket Open');
-      };
-
-      ws.onerror = function (error) {
-        console.log('WebSocket Error ' + error);
-      };
-
-      ws.onmessage = function (e) {
-        var rawData = e.data;
-        if(rawData.trim().length > 1)
-        {
-          var jsonObj = JSON.parse(rawData);
-          //dataArr.push(jsonObj);
-          processData(jsonObj);
-        }
-      };
-
-    }
-
-    function processData(jsonObj) {
-
-        jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
-        jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
-        jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
-
-        d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
-        d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
-        setLDR(gaugeLDR,jsonObj[0]['LDR']);
-        // @todo - compute previous (avg) level
-        setBarometer(gaugeP,jsonObj[0]['p'],1040);
-
-        setLastSampleDate(jsonObj[0]['ts']);
-
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        setupWebSocket();
-
-        d3.select("#chartTempC").datum([12]).call(gaugeTempC);
-        d3.select("#chartH").datum([50]).call(gaugeH);
-        setBarometer(gaugeP,1049,1040);
-        setLDR(gaugeLDR,90);
-
-    });
-
-    function setLastSampleDate(ts)
+    function setLastSampleDate(ts,alt)
     {
       var d = new Date(ts * 1000);
       var hours = ("0" + d.getHours()).slice(-2);
       var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
+      dateStr += ', Altitude: '+alt.toFixed(2)+' metres';
       document.getElementById("datetime").innerHTML = dateStr;
     }
 
