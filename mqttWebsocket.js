@@ -28,14 +28,17 @@ Example Messaging in/out flow:
       pAvg: 101305 } ]
 
 
-Requires mqtt, ws, mongodb:
+Requires mqtt, ws, mongodb, events:
   npm install mqtt
   npm install ws
   npm install mongodb
 
 */
 
-var rx_msg = [];
+const EventEmitter = require('events');
+class StatsEmitter extends EventEmitter {}
+const statsEmitter = new StatsEmitter();
+
 
 // setup Websocket Server
 const WebSocket = require('ws');
@@ -104,21 +107,30 @@ mqttClient.on('message', function sendMsg(topic, message, packet) {
   console.log(mqttClient.rawListeners('message'));
 
   // Query mongo DB - compute barometric air pressure 3 hour average
-  computeAvg();
+  statsEmitter.emit('computeAvg');
 
   // append avg to JSON message
+  var bValidJSON = true;
   if(message.toString().length > 1)
   {
-    var jsonObj = JSON.parse(message.toString());
-    jsonObj[0]['pAvg'] = pAvg;
-    //console.log(jsonObj);
-    var jsonStr = JSON.stringify(jsonObj);
+    try {
+          var jsonObj = JSON.parse(message.toString());
+          jsonObj[0]['pAvg'] = pAvg;
+          //console.log(jsonObj);
+          var jsonStr = JSON.stringify(jsonObj);
+        } catch(e) {
+            bValidJSON = false;
+            console.log("Invalid JSON:"+message.toString());
+        }
   }
 
-  wss.clients.forEach(function each(ws) {
-    if (ws.isAlive === false) return ws.terminate();
-    ws.send(jsonStr+" ");
-  });
+  if (bValidJSON)
+  {
+    wss.clients.forEach(function each(ws) {
+      if (ws.isAlive === false) return ws.terminate();
+      ws.send(jsonStr+" ");
+    });
+  }
 
 });
 
@@ -144,7 +156,7 @@ wss.on('listening', function connection() {
 MongoDB Aggregration Query:
 Query MongoDB to compute 3hour simple moving average barometric air pressure
 */
-var computeAvg = function() {
+statsEmitter.on('computeAvg', function() {
 
   var maxts = null;
 
@@ -161,4 +173,4 @@ var computeAvg = function() {
     //console.log(result[0]['avg']);
     pAvg = Math.trunc( result[0]['avg'] );
   });
-}
+});
