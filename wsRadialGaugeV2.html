@@ -22,11 +22,18 @@
 
         var dataArr = [];
 
-        // setup WebSocket
-        var ws = new WebSocket('ws://127.0.0.1:8080',[]);
+        var ws = null
+        var maxReconnectAttemps = 10;
+        var reconnectAttempts = 0;
 
+        // setup WebSocket
         function setupWebSocket()
         {
+
+          reconnectAttempts = 0;
+
+          ws = new WebSocket('ws://127.0.0.1:8080',[]);
+
           ws.onopen = function () {
             console.log('WebSocket Open');
           };
@@ -37,23 +44,36 @@
 
           ws.onmessage = function (e) {
             var rawData = e.data;
-            if(rawData.trim().length > 1)
+            if(rawData.trim().length > 1 && rawData.trim() != "undefined")
             {
-              var jsonObj = JSON.parse(rawData);
-              //dataArr.push(jsonObj);
-              jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
-              jsonObj[0]['pAvg'] = jsonObj[0]['pAvg'] / 100;
-              jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
-              jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+              try {
 
-              console.log(jsonObj);
+                var jsonObj = JSON.parse(rawData);
+                jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
+                jsonObj[0]['pAvg'] = jsonObj[0]['pAvg'] / 100;
+                jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
+                jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+                dataArr.push(jsonObj);
 
-              dataArr.push(jsonObj);
+                setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a']);
 
-              setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a']);
+              } catch(e) {
+                  console.log("Invalid JSON:"+rawData.toString());
+              }
             }
           };
         }
+
+        // check connection status every 60sec, upto maxReconnectAttemps, try reconnect
+        const interval = setInterval(function checkConnectStatus() {
+          if (reconnectAttempts++ < maxReconnectAttemps)
+          {
+            if (ws.readyState !== ws.OPEN) {
+               console.log("WS connection closed - try re-connect");
+               setupWebSocket();
+            }
+          }
+        }, 60000);
 
         document.addEventListener("DOMContentLoaded", function() {
             setupWebSocket();
