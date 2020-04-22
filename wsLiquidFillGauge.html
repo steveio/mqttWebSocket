@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://d3js.org/d3.v3.min.js" language="JavaScript"></script>
+    <script src="wsLiquidFillGauge.js" language="JavaScript"></script>
+    <style>
+        .liquidFillGauge { }
+        .liquidFillGaugeText { font-family: Helvetica; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<script language="JavaScript">
+
+    var gauge1, gauge2, gauge3, gauge4, gauge5 = null;
+
+    var dataArr = [];
+    var ws = null
+    var maxReconnectAttemps = 10;
+    var reconnectAttempts = 0;
+
+    // setup WebSocket
+    function setupWebSocket()
+    {
+
+      reconnectAttempts = 0;
+
+      ws = new WebSocket('ws://192.168.1.127:8080',[]);
+
+      ws.onopen = function () {
+        console.log('WebSocket Open');
+      };
+
+      ws.onerror = function () {
+        console.log('WebSocket Error ' + error);
+      };
+
+      ws.onmessage = function (e) {
+        var rawData = e.data;
+        if(rawData.trim().length > 1 && rawData.trim() != "undefined")
+        {
+          try {
+
+            var jsonObj = JSON.parse(rawData);
+            jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
+            jsonObj[0]['pAvg'] = jsonObj[0]['pAvg'] / 100;
+            jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
+            jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+
+            console.log("Update gauge");
+            gauge1.update(jsonObj[0]['tempC']);
+            gauge2.update(jsonObj[0]['h']);
+            gauge3.update(jsonObj[0]['tempF']);
+            gauge4.update(jsonObj[0]['h']);
+
+            dataArr.push(jsonObj);
+
+          } catch(e) {
+              console.log("Invalid JSON:"+rawData.toString());
+          }
+        }
+      };
+    }
+
+    // check connection status every 60sec, upto maxReconnectAttemps, try reconnect
+    const interval = setInterval(function checkConnectStatus() {
+      if (reconnectAttempts++ < maxReconnectAttemps)
+      {
+        if (ws.readyState !== ws.OPEN) {
+           console.log("WS connection closed - try re-connect");
+           setupWebSocket();
+        }
+      }
+    }, 60000);
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupWebSocket();
+        initGauge();
+    });
+
+    initGauge = function()
+    {
+
+      gauge1 = loadLiquidFillGauge("fillgauge1", 90);
+
+      var config2 = liquidFillGaugeDefaultSettings();
+      config2.width = 300;
+      config2.height = 400;
+      config2.circleColor = "#FF7777";
+      config2.textColor = "#FF4444";
+      config2.waveTextColor = "#FFAAAA";
+      config2.waveColorDomain = ["#e34a33","#fee8c8"];
+      config2.waveColorDataDomain = [0,100];
+      config2.circleThickness = 0.2;
+      config2.textVertPosition = 0.5;
+      config2.waveAnimateTime = 1000;
+      gauge2= loadLiquidFillGauge("fillgauge2", 15, config2);
+
+      var config3 = liquidFillGaugeDefaultSettings();
+      config3.width = 300;
+      config3.height = 400;
+      config3.circleColor = "#fecc5c";
+      config3.textColor = "#bd0026";
+      config3.waveColorDomain = ["#fff7bc","#fec44f"];
+      config3.waveColorDataDomain = [0,100];
+      config3.waveTextColor = "#bd0026";
+      config3.circleThickness = 0.1;
+      config3.circleFillGap = 0.2;
+      config3.textVertPosition = 0.8;
+      config3.waveAnimateTime = 2000;
+      config3.waveHeight = 0.3;
+      config3.waveCount = 1;
+      gauge3 = loadLiquidFillGauge("fillgauge3", 25, config3);
+
+      var config4 = liquidFillGaugeDefaultSettings();
+      config4.width = 300;
+      config4.height = 400;
+      config4.circleThickness = 0.15;
+      config4.circleColor = "#a1d99b";
+      config4.textColor = "#808015";
+      config4.waveTextColor = "#31a354";
+      config4.waveColorDomain = ["#31a354","#e5f5e0"];
+      config4.waveColorDataDomain = [0,100];
+      config4.textVertPosition = 0.8;
+      config4.waveAnimateTime = 1000;
+      config4.waveHeight = 0.05;
+      config4.waveAnimate = true;
+      config4.waveRise = false;
+      config4.waveHeightScaling = false;
+      config4.waveOffset = 0.25;
+      config4.textSize = 0.75;
+      config4.waveCount = 3;
+      gauge4 = loadLiquidFillGauge("fillgauge4", 50, config4);
+    }
+
+</script>
+</body>
+</html>
