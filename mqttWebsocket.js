@@ -42,7 +42,7 @@ const statsEmitter = new StatsEmitter();
 
 // setup Websocket Server
 const WebSocket = require('ws');
-var ws_host = "127.0.0.1";
+var ws_host = "192.168.1.127";
 var ws_port = "8080";
 const wss = new WebSocket.Server({ host: ws_host, port: ws_port });
 var ws = null;
@@ -90,12 +90,46 @@ function heartbeat() {
   this.isAlive = true;
 }
 
+// Send CMD to wake Arduino Weather Station, currently there is no Ack
+function wakeWeatherStation()
+{
+  return new Promise(function(resolve, reject)
+  {
+    let wait = setTimeout(() => {
+      // wake up Weather Station
+      msg = {};
+      msg.cmd = "1006"; // wakeup
+      msg.d = "";
+
+      mqttClient.publish(mqtt_channel_in, JSON.stringify(msg));
+      resolve();
+    }, 3000)
+  });
+}
+
+
 // Create a client connection
 wss.on('connection', function connection(ws,req) {
   console.log('WS connection()');
 
   ws.isAlive = true;
   ws.on('pong', heartbeat);
+
+  ws.onmessage = function (e) {
+    var rawData = e.data;
+    console.log(rawData);
+    if(rawData.trim().length > 1 && rawData.trim() != "undefined")
+    {
+
+        wakeWeatherStation().then(function(ws) {
+          mqttClient.publish(mqtt_channel_in, rawData);
+
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+    }
+  };
 });
 
 mqttClient.on('message', function sendMsg(topic, message, packet) {
@@ -128,6 +162,7 @@ mqttClient.on('message', function sendMsg(topic, message, packet) {
   {
     wss.clients.forEach(function each(ws) {
       if (ws.isAlive === false) return ws.terminate();
+      console.log(jsonStr);
       ws.send(jsonStr+" ");
     });
   }
@@ -163,14 +198,14 @@ statsEmitter.on('computeAvg', function() {
   dbo.collection('sensorData').find({},{"ts":1}).sort({ts:-1}).limit(1).map( function(d) { return d.ts; } ).toArray(function(err, result) {
     if (err) throw err;
     maxts = result[0];
-    //console.log(result[0]);
+    console.log(result[0]);
   });
 
   var query = dbo.collection('sensorData').aggregate([{ $match: {"ts":{$gte: maxts - pAvgInterval}} },{ $group: { _id : null,avg: { $avg: "$p" } } }]);
 
   avg = query.toArray(function(err, result) {
     if (err) throw err;
-    //console.log(result[0]['avg']);
+    console.log(result[0]['avg']);
     pAvg = Math.trunc( result[0]['avg'] );
   });
 });
