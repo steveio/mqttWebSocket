@@ -46,7 +46,7 @@
     function setupWebSocket()
     {
 
-      ws = new WebSocket('ws://127.0.0.1:8080',[]);
+      ws = new WebSocket('ws://192.168.1.127:8080',[]);
 
       ws.onopen = function () {
         console.log('WebSocket Open');
@@ -58,7 +58,7 @@
 
       ws.onmessage = function (e) {
         var rawData = e.data;
-        if(rawData.trim().length > 1)
+        if(rawData.trim().length > 1 && rawData.trim() != "undefined")
         {
           try {
 
@@ -212,7 +212,7 @@
     {
       var highPressure = 1022;
       var lowPressure = 1009;
-      var margin = 20;
+      var margin = 3.5;
       var diff = level - prevLevel;
       if (Math.sign(diff) == -1)
       {
