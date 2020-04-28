@@ -42,36 +42,57 @@
     var dataArr = [];
     // setup WebSocket
     var ws = null;
+    var reconnectAttempts = 0;
+    var maxReconnectAttemps = 5;
+
+    function connect() {
+        return new Promise(function(resolve, reject) {
+            var server = new WebSocket('ws://mysite:1234');
+            server.onopen = function() {
+                resolve(server);
+            };
+            server.onerror = function(err) {
+                reject(err);
+            };
+
+        });
+    }
 
     function setupWebSocket()
     {
+      return new Promise(function(resolve, reject)
+      {
 
-      ws = new WebSocket('ws://192.168.1.127:8080',[]);
+        ws = new WebSocket('ws://192.168.1.127:8080',[]);
 
-      ws.onopen = function () {
-        console.log('WebSocket Open');
-      };
+        ws.onopen = function () {
+          console.log('WebSocket Open');
+          resolve(ws);
+        };
 
-      ws.onerror = function (error) {
-        console.log('WebSocket Error ' + error);
-      };
+        ws.onerror = function (error) {
+          console.log('WebSocket Error ' + error);
+          reject(error);
+        };
 
-      ws.onmessage = function (e) {
-        var rawData = e.data;
-        if(rawData.trim().length > 1 && rawData.trim() != "undefined")
-        {
-          try {
+        ws.onmessage = function (e) {
+          var rawData = e.data;
+          if(rawData.trim().length > 1 && rawData.trim() != "undefined")
+          {
+            try {
+              var jsonObj = JSON.parse(rawData);
+              processData(jsonObj);
 
-            var jsonObj = JSON.parse(rawData);
-            processData(jsonObj);
-
-          } catch(e) {
-              console.log("Invalid JSON:"+rawData.toString());
+            } catch(e) {
+                console.log("Invalid JSON:"+rawData.toString());
+            }
           }
+        };
 
-        }
-      };
+      })
+
     }
+
 
     // check connection status every 60sec, upto maxReconnectAttemps, try reconnect
     const interval = setInterval(function checkConnectStatus() {
@@ -102,8 +123,22 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        setupWebSocket();
+        setupWebSocket().then(function(ws) {
+            readSensorRequest(ws);
+        }).catch(function(err) {
+            console.log(err);
+        });
     });
+
+    readSensorRequest = function(ws) {
+      msg = {};
+      msg.cmd = "1001"; // read sensor
+      msg.d = " ";
+      if (ws.readyState === ws.OPEN) {
+        console.log(JSON.stringify(msg));
+        ws.send(JSON.stringify(msg));
+      }
+    }
 
     var gaugeTempC = gaugeChart()
       .width(460)
