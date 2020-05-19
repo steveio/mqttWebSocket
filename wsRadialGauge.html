@@ -15,6 +15,10 @@
     .chart {
       float: left;
       max-width: 500px;
+      --border: 1px solid #000000;
+      padding: 0px;
+      margin: 0px;
+      height: 220px;
     }
     .filter-green{
         filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
@@ -28,10 +32,11 @@
       <h4>Last Weather Station Sample: <span id="datetime"></span></h4>
     </div>
 
-    <div style="float: left;">
+    <div>
     <div class="chart" id="chartTempC"></div>
     <div class="chart" id="chartP"></div>
     <div class="chart" id="chartH"></div>
+    <div class="chart" id="chartW"></div>
     <div class="chart" id="chartLDR"></div>
     </div>
 
@@ -115,6 +120,7 @@
 
         d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
         d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
+        d3.select("#chartW").datum([jsonObj[0]['w']]).call(gaugeW);
         setLDR(gaugeLDR,jsonObj[0]['LDR']);
         setBarometer(gaugeP,jsonObj[0]['p'],jsonObj[0]['pAvg']);
 
@@ -141,10 +147,10 @@
     }
 
     var gaugeTempC = gaugeChart()
-      .width(460)
-      .height(270)
-      .innerRadius(50)
-      .outerRadius(80)
+      .width(420)
+      .height(240)
+      .innerRadius(30)
+      .outerRadius(50)
       .units("°C")
       .dataDomain([0,20,40])
       .colorInterpolator(d3.interpolateRdYlBu)
@@ -157,10 +163,10 @@
         - display current + previous (average) pressure
     */
     var gaugeP = gaugeChart()
-      .width(460)
-      .height(270)
-      .innerRadius(50)
-      .outerRadius(80)
+      .width(420)
+      .height(260)
+      .innerRadius(30)
+      .outerRadius(50)
       .ticks(15)
       .units("hPa")
       .dataDomain([980,1010,1050])
@@ -168,21 +174,31 @@
       .imgUrl([]);
 
     var gaugeH = gaugeChart()
-      .width(460)
-      .height(270)
-      .innerRadius(50)
-      .outerRadius(80)
+      .width(420)
+      .height(240)
+      .innerRadius(30)
+      .outerRadius(50)
       .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolateBlues)
       .imgUrl(["raindrop.svg"]);
 
+    var gaugeW = gaugeChart()
+      .width(420)
+      .height(240)
+      .innerRadius(30)
+      .outerRadius(50)
+      .units("")
+      .dataDomain([0,500,1024])
+      .colorInterpolator(d3.interpolateBlues)
+      .imgUrl(["wet.svg"]);
+
     var gaugeLDR = gaugeChart()
-      .width(460)
-      .height(270)
+      .width(420)
+      .height(240)
       .ticks(15)
-      .innerRadius(50)
-      .outerRadius(80)
+      .innerRadius(30)
+      .outerRadius(50)
       .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolatePlasma)
@@ -193,6 +209,7 @@
     d3.select("#chartTempC").datum([0]).call(gaugeTempC);
     d3.select("#chartP").datum([0]).call(gaugeP);
     d3.select("#chartH").datum([0]).call(gaugeH);
+    d3.select("#chartW").datum([0]).call(gaugeW);
     d3.select("#chartLDR").datum([0]).call(gaugeLDR);
 
 
@@ -209,6 +226,10 @@
       var gWidth = Math.min(d3.select("#chartH").node().offsetWidth, 400);
       gaugeH.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
       d3.select("#chartH").call(gaugeH);
+
+      var gWidth = Math.min(d3.select("#chartW").node().offsetWidth, 400);
+      gaugeW.width(gWidth).innerRadius(gWidth / 4).outerRadius((gWidth / 4) + 40);
+      d3.select("#chartW").call(gaugeW);
 
       var gWidth = Math.min(d3.select("#chartLDR").node().offsetWidth, 400);
       gaugeLDR.width(gWidth).innerRadius(164).outerRadius((1140) + 40);

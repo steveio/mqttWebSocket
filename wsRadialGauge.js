@@ -111,46 +111,6 @@ function gaugeChart() {
         .text(function(d) { return d3.format(".1f")(d.score)+" "+units; });
 
 
-      svg.append("line").attr("class", "needle");
-
-      svg.selectAll('.needle')
-          .datum({score: data[0]})
-          .attr("class", "needle")
-          .attr("x1", -100)
-          .attr("y1", 0)
-          .attr("x2", -140)
-          .attr("y2", 0)
-          .style("stroke-width", 2)
-          .style("stroke", "red")
-          .attr( "transform", function(d) {
-            return "translate(200,180),rotate(" + needleScale([d.score]) + ")"
-      });
-
-
-      // marker lines
-      arcGEnter.selectAll(".lines").data(
-        arcScale.ticks([25]).map(function(d) {
-          return { score: d };
-        })
-      ).enter()
-        .append("path")
-        .attr("class", "lines-2");
-
-      var markerLine = d3.radialLine()
-        .angle(function(d) {
-            return arcScale(d); // d = ticks in data domain
-        })
-        .radius(function(d, i) {
-          return innerRadius + ((i % 2) * ((outerRadius - innerRadius)));
-        });
-
-      // radial marker lines
-      arcG.selectAll(".lines-2")
-        .attr("d", function(d) { return markerLine([d.score, d.score]); })
-        .style("fill", "none")
-        .style("stroke-width", 1.5)
-        .style("stroke", "#ccc");
-
 
       // marker lines
       arcGEnter.selectAll(".lines").data(arcScale.ticks(ticks).map(function(d) {
