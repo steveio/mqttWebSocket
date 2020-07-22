@@ -4,17 +4,17 @@
 <style>
 
 body {
-  background: #000000;
+  background: #fff;
 }
 
 svg{
-	stroke: #39ff14;
+	stroke: #000;
 	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 }
 
 #rim {
   fill: none;
-  stroke: #39ff14;
+  stroke: #999;
   stroke-width: 3px;
 }
 
@@ -35,12 +35,12 @@ svg{
 
 .hands-cover{
 	stroke-width:3;
-	fill:red;
+	fill:yellow;
 }
 
 .second-tick{
 	stroke-width:2;
-	fill:#39ff14;
+	fill:#000;
 }
 
 .hour-tick{
@@ -60,55 +60,6 @@ svg{
 <body>
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script>
-
-
-  var ws = null
-  var maxReconnectAttemps = 10;
-  var reconnectAttempts = 0;
-
-  // setup WebSocket
-  function setupWebSocket()
-  {
-
-    reconnectAttempts = 0;
-
-    ws = new WebSocket('ws://192.168.1.127:8080',[]);
-
-    ws.onopen = function () {
-      console.log('WebSocket Open');
-    };
-
-    ws.onerror = function (error) {
-      console.log('WebSocket Error ' + error);
-    };
-
-    ws.onmessage = function (e) {
-      var rawData = e.data;
-      if(rawData.trim().length > 1 && rawData.trim() != "undefined")
-      {
-        try {
-
-        } catch(e) {
-            console.log("Invalid Data:"+rawData.toString());
-        }
-      }
-    };
-  }
-
-  // check connection status every 60sec, upto maxReconnectAttemps, try reconnect
-  const interval = setInterval(function checkConnectStatus() {
-    if (reconnectAttempts++ < maxReconnectAttemps)
-    {
-      if (ws.readyState !== ws.OPEN) {
-         console.log("WS connection closed - try re-connect");
-         setupWebSocket();
-      }
-    }
-  }, 60000);
-
-  document.addEventListener("DOMContentLoaded", function() {
-      setupWebSocket();
-  });
 
 
 var radians = 0.0174532925,
@@ -140,6 +91,18 @@ var minuteScale = secondScale = d3.scale.linear()
 
 var directionLabel = ['N','NE','E','SE','S','SW','W','NW'];
 
+// Map Arduino sensor index to direction label array position
+var directionMap = [];
+directionMap[0] = 4;
+directionMap[1] = 6;
+directionMap[2] = 5;
+directionMap[3] = 7;
+directionMap[4] = 0;
+directionMap[5] = 2;
+directionMap[6] = 3;
+directionMap[7] = 1;
+
+
 var handData = [
 	{
 		type:'hour',
@@ -163,6 +126,61 @@ var handData = [
 	}
   */
 ];
+
+var ws = null
+var maxReconnectAttemps = 10;
+var reconnectAttempts = 0;
+
+// setup WebSocket
+function setupWebSocket()
+{
+
+  reconnectAttempts = 0;
+
+  ws = new WebSocket('ws://127.0.0.1:5678',[]);
+
+  ws.onopen = function () {
+    console.log('WebSocket Open');
+  };
+
+  ws.onerror = function (error) {
+    console.log('WebSocket Error ' + error);
+  };
+
+  ws.onmessage = function (e) {
+    var rawData = e.data;
+    if(rawData.trim().length > 1 && rawData.trim() != "undefined")
+    {
+      try {
+
+        var a = rawData.split("	");
+        var idx = a[0] -3; // shift arduino pin 3-10 to range 0-7
+        updateData(directionMap[idx]);
+        moveHands();
+
+      } catch(e) {
+          console.log("Invalid Data:"+rawData.toString());
+      }
+    }
+  };
+}
+
+// check connection status every 60sec, upto maxReconnectAttemps, try reconnect
+const interval = setInterval(function checkConnectStatus() {
+  if (reconnectAttempts++ < maxReconnectAttemps)
+  {
+    if (ws.readyState !== ws.OPEN) {
+       console.log("WS connection closed - try re-connect");
+       setupWebSocket();
+    }
+  }
+}, 60000);
+
+document.addEventListener("DOMContentLoaded", function() {
+    setupWebSocket();
+});
+
+
 
 function drawClock(){ //create all the clock elements
 	updateData();	//draw them in the correct starting position
@@ -290,10 +308,12 @@ function updateData(idx){
 
 drawClock();
 
+/*
 setInterval(function(){
 	updateData();
 	moveHands();
 }, 1000);
+*/
 
 d3.select(self.frameElement).style("height", height + "px");
 </script>
