@@ -24,6 +24,9 @@
         filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
     }
 
+    .chart .title { font-size: 14px; font-weight: bold; }
+    .chart .subtitle { font-size: 12px; fill: #999; }
+
     </style>
   </head>
   <body>
@@ -50,25 +53,12 @@
     var reconnectAttempts = 0;
     var maxReconnectAttemps = 5;
 
-    function connect() {
-        return new Promise(function(resolve, reject) {
-            var server = new WebSocket('ws://mysite:1234');
-            server.onopen = function() {
-                resolve(server);
-            };
-            server.onerror = function(err) {
-                reject(err);
-            };
-
-        });
-    }
-
     function setupWebSocket()
     {
       return new Promise(function(resolve, reject)
       {
 
-        ws = new WebSocket('ws://192.168.1.127:8080',[]);
+        ws = new WebSocket('ws://192.168.43.185:8080',[]);
 
         ws.onopen = function () {
           console.log('WebSocket Open');
@@ -113,18 +103,17 @@
     function processData(jsonObj) {
 
         jsonObj[0]['p'] = jsonObj[0]['p'] / 100;
-        jsonObj[0]['LDR'] = 1024 - jsonObj[0]['LDR'];
-        jsonObj[0]['LDR'] = jsonObj[0]['LDR'] / 1024 * 100;
+        jsonObj[0]['l'] = jsonObj[0]['l'] / 1024 * 100;
         // average current DH11 & BMP180 temp reads
-        jsonObj[0]['tempC'] = (jsonObj[0]['tempC'] + jsonObj[0]['tc2']) / 2;
+        jsonObj[0]['t'] = (jsonObj[0]['t'] + jsonObj[0]['t2']) / 2;
 
-        d3.select("#chartTempC").datum([jsonObj[0]['tempC']]).call(gaugeTempC);
+        d3.select("#chartTempC").datum([jsonObj[0]['t']]).call(gaugeTempC);
         d3.select("#chartH").datum([jsonObj[0]['h']]).call(gaugeH);
         d3.select("#chartW").datum([jsonObj[0]['w']]).call(gaugeW);
-        setLDR(gaugeLDR,jsonObj[0]['LDR']);
+        setLDR(gaugeLDR,jsonObj[0]['l']);
         setBarometer(gaugeP,jsonObj[0]['p'],jsonObj[0]['pAvg']);
 
-        setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a']);
+        setLastSampleDate(jsonObj[0]['ts'],jsonObj[0]['a'],jsonObj[0]['el'],jsonObj[0]['az']);
 
     }
 
@@ -152,6 +141,7 @@
       .innerRadius(30)
       .outerRadius(50)
       .units("°C")
+      .labelTitle("Temperature (Celcius)")
       .dataDomain([0,20,40])
       .colorInterpolator(d3.interpolateRdYlBu)
       .imgUrl(["thermometer-25.svg"]);
@@ -168,6 +158,7 @@
       .innerRadius(30)
       .outerRadius(50)
       .ticks(15)
+      .labelTitle("Air Pressure (Pascals)")
       .units("hPa")
       .dataDomain([980,1010,1050])
       .colorInterpolator(d3.interpolateRdYlGn)
@@ -178,6 +169,7 @@
       .height(240)
       .innerRadius(30)
       .outerRadius(50)
+      .labelTitle("Humidity")
       .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolateBlues)
@@ -188,6 +180,7 @@
       .height(240)
       .innerRadius(30)
       .outerRadius(50)
+      .labelTitle("Soil Moisture Level")
       .units("")
       .dataDomain([0,500,1024])
       .colorInterpolator(d3.interpolateBlues)
@@ -199,6 +192,7 @@
       .ticks(15)
       .innerRadius(30)
       .outerRadius(50)
+      .labelTitle("Light Level")
       .units("%")
       .dataDomain([0,50,100])
       .colorInterpolator(d3.interpolatePlasma)
@@ -239,13 +233,13 @@
     resize();
     window.addEventListener("resize", resize);
 
-    function setLastSampleDate(ts,alt)
+    function setLastSampleDate(ts,alt,el,az)
     {
       var d = new Date(ts * 1000);
       var hours = ("0" + d.getHours()).slice(-2);
-      var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
-      dateStr += ', Altitude: '+alt.toFixed(2)+' metres';
-      document.getElementById("datetime").innerHTML = dateStr;
+      var s = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " " + hours+":"+d.getMinutes()+":"+d.getSeconds();
+      s += ', Altitude: '+alt.toFixed(2)+' m<br />Sun Elevation: '+el+', Azimuth: '+az;
+      document.getElementById("datetime").innerHTML = s;
     }
 
     function setLDR(gaugeLDR,level)
