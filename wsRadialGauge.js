@@ -9,9 +9,11 @@ function gaugeChart() {
       innerRadius = 60,
       outerRadius = 80,
       dataDomain = [0, 20, 40],
+      markers = [],
       imgUrl = [],
       labelPad = 10,
       ticks = 5,
+      title = "",
       units = "",
       dataValue = function(d) { return +d; },
       colorScale = d3.scaleLinear(),
@@ -26,7 +28,9 @@ function gaugeChart() {
       // Convert data to standard representation greedily;
       // this is needed for nondeterministic accessors.
       data = data.map(function(d, i) { return dataValue(d); });
+
       arcScale = d3.scaleLinear().domain(dataDomain).range([arcMin, 0, arcMax]);
+
       //colorScale = d3.scaleLinear().domain(dataDomain).range(colorOptions);
       colorScale = d3.scaleSequential(colorInterpolator).domain([dataDomain[0],dataDomain[2]]);
 
@@ -110,6 +114,53 @@ function gaugeChart() {
         .style("font-size", "30px")
         .text(function(d) { return d3.format(".1f")(d.score)+" "+units; });
 
+      arcGEnter.append("text").attr("class", "arc-title");
+
+      svg.select("text.arc-title")
+        .datum({title: title})
+        .attr("x", (arcBox.width/2)+arcBox.x)
+        .attr("y", 24)
+        .style("alignment-baseline", "central")
+        .style("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text(function(d) { return title; });
+
+      // static markers
+      arcGEnter.selectAll(".lineStatic").data(markers.map(function(d) {
+        return { score: d[0], label: d[1], color: d[2] };
+      })).enter()
+        .append("path")
+        .attr("class", "lineStatic");
+
+      var markerLineStatic = d3.radialLine()
+        .angle(function(d) {
+            return arcScale(d); // d = ticks in data domain
+        })
+        .radius(function(d, i) {
+          return innerRadius + ((i % 2) * ((outerRadius - innerRadius)));
+        });
+
+      // radial static marker lines
+      arcG.selectAll(".lineStatic")
+        .attr("d", function(d) { return markerLineStatic([d.score, d.score]); })
+        .style("fill", "none")
+        .style("stroke-width", 1.5)
+        .style("stroke", function(d) { return d.color });
+
+        arcGEnter.selectAll(".tickStatic").data(markers.map(function(d) {
+          return { score: d[0], label: d[1], color: d[2] };
+        })).enter().append("text")
+        .attr("class", "tickStatic");
+
+      // tick labels
+      arcG.selectAll(".tickStatic")
+        .style("font-size", "10px")
+        .style("text-anchor", "middle")
+        .attr("x", function(d) { return Math.cos(arcScale(d.score) + arcMin) * (outerRadius + labelPad - 55); })
+        .attr("y", function(d) {
+          var yVal = Math.sin(arcScale(d.score) + arcMin) * (outerRadius + labelPad - 55);
+          return yVal < -1 ? yVal : -7;
+        }).text(function(d) { console.log(d.label); return d.label; });
 
 
       // marker lines
@@ -226,9 +277,21 @@ function gaugeChart() {
     return chart;
   };
 
+  chart.markers = function(_) {
+    if (!arguments.length) return markers;
+    markers = _;
+    return chart;
+  };
+
   chart.units = function(_) {
     if (!arguments.length) return units;
     units = _;
+    return chart;
+  };
+
+  chart.labelTitle = function(_) {
+    if (!arguments.length) return title;
+    title = _;
     return chart;
   };
 
